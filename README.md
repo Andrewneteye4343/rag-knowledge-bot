@@ -86,9 +86,9 @@ docker compose run --rm rag chat
 
 | 參數 | 預設值 | 說明 |
 |---|---|---|
-| `LLM_MODEL` | `gemini-2.5-flash` | Gemini 模型名稱 |
+| `LLM_MODEL` | `gemini-3.6-flash` | Gemini 模型名稱（新帳號請勿用 2.5-flash，已停止開放） |
 | `LLM_BACKEND` | `gemini` | `gemini`＝正式 API；`mock`＝測試用不呼叫 API |
-| `EMBEDDING_MODEL` | `BAAI/bge-small-zh-v1.5` | 本地 embedding 模型（可換 `intfloat/multilingual-e5-small`） |
+| `EMBEDDING_MODEL` | `intfloat/multilingual-e5-large` | 中英雙語 embedding（繁中實測開源最強；下載 2.2GB）。輕量替代：`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
 | `CHUNK_SIZE` | `500` | 切塊大小（字元數） |
 | `CHUNK_OVERLAP` | `50` | 區塊重疊（字元數） |
 | `TOP_K` | `4` | 每次檢索回傳的區塊數 |

@@ -8,5 +8,8 @@ services:
     volumes:
       # 知識庫文件與向量資料庫都掛載到本機，方便替換文件與保留資料
       - ./data:/app/data
+      # 模型快取掛載到本機：避免每次 run 都重新下載 2.2GB embedding 模型
+      # （程式會把模型下載到 /app/cache = 本機 ./cache）
+      - ./cache:/app/cache
     stdin_open: true
     tty: true

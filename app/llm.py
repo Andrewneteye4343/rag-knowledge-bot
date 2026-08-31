@@ -30,6 +30,7 @@ def generate(question: str, chunks: list[dict]) -> str:
         )
 
     from google import genai
+    from google.genai import errors as genai_errors
 
     client = genai.Client(api_key=config.GEMINI_API_KEY)
     prompt = (
@@ -37,7 +38,17 @@ def generate(question: str, chunks: list[dict]) -> str:
         f"【上下文】\n{build_context(chunks)}\n\n"
         f"【問題】\n{question}"
     )
-    resp = client.models.generate_content(model=config.LLM_MODEL, contents=prompt)
+    try:
+        resp = client.models.generate_content(model=config.LLM_MODEL, contents=prompt)
+    except genai_errors.APIError as e:
+        raise SystemExit(
+            f"❌ Gemini API 錯誤（HTTP {e.code}）：{e.message}\n"
+            "請將此訊息貼給你的助教協助排除。"
+        ) from e
+    except Exception as e:
+        raise SystemExit(
+            f"❌ Gemini API 呼叫失敗：{type(e).__name__}: {e}"
+        ) from e
     return resp.text or "(模型無回覆內容)"
 
 
