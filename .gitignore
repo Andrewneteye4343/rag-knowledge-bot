@@ -1,0 +1,11 @@
+# 環境變數（含 API key）
+.env
+
+# 向量資料庫與暫存
+data/chroma/
+__pycache__/
+*.pyc
+
+# Python venv
+.venv/
+venv/

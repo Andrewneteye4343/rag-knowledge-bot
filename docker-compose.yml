@@ -1,0 +1,12 @@
+services:
+  rag:
+    build: .
+    image: rag-knowledge-bot:latest
+    container_name: rag-knowledge-bot
+    env_file:
+      - .env
+    volumes:
+      # 知識庫文件與向量資料庫都掛載到本機，方便替換文件與保留資料
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
