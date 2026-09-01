@@ -30,3 +30,6 @@ KNOWLEDGE_DIR = Path(_get("KNOWLEDGE_DIR", str(BASE_DIR / "data" / "knowledge"))
 CHUNK_SIZE = int(_get("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(_get("CHUNK_OVERLAP", "50"))
 TOP_K = int(_get("TOP_K", "4"))
+
+# --- OCR（掃描型 PDF 用）---
+OCR_LANG = _get("OCR_LANG", "chi_tra+eng")

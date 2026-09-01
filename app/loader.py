@@ -13,6 +13,9 @@ SUPPORTED_EXTS = {".txt", ".md", ".pdf", ".docx"}
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[。！？!?；;])")
 
+# 文字層總字元數低於此值 → 視為掃描型 PDF（無文字層），自動改用 OCR
+_SCAN_THRESHOLD = 20
+
 
 def load_text_file(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
@@ -20,7 +23,46 @@ def load_text_file(path: Path) -> str:
 
 def load_pdf(path: Path) -> str:
     reader = pypdf.PdfReader(str(path))
-    return "\n\n".join(page.extract_text() or "" for page in reader.pages)
+    text = "\n\n".join(page.extract_text() or "" for page in reader.pages).strip()
+    if len(text) < _SCAN_THRESHOLD:
+        # 幾乎抽不到文字層 → 判斷為掃描型 PDF，自動用 OCR 辨識
+        print(f"  🔍 {path.name}：偵測到掃描型 PDF（無文字層），進行 OCR 辨識（需較長時間）...")
+        text = _ocr_pdf(path)
+    return text
+
+
+def _ocr_pdf(path: Path) -> str:
+    """用 Tesseract OCR 辨識掃描型 PDF 的圖片文字。"""
+    import config
+
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+    except ImportError as e:
+        raise RuntimeError(
+            "OCR 功能需要 pytesseract 與 pdf2image 套件（已列於 requirements.txt）"
+        ) from e
+
+    try:
+        pages = convert_from_path(str(path), dpi=200)
+    except Exception as e:
+        raise RuntimeError(
+            f"PDF 轉圖片失敗（Docker 映像需安裝 poppler-utils）：{e}"
+        ) from e
+
+    texts = []
+    for i, page in enumerate(pages, 1):
+        try:
+            text = pytesseract.image_to_string(page, lang=config.OCR_LANG).strip()
+        except Exception as e:
+            raise RuntimeError(
+                "OCR 執行失敗（Docker 映像需安裝 tesseract-ocr 與語言包，"
+                f"例如 tesseract-ocr-chi-tra）：{e}"
+            ) from e
+        if text:
+            texts.append(text)
+        print(f"     OCR 第 {i}/{len(pages)} 頁完成")
+    return "\n\n".join(texts)
 
 
 def load_docx(path: Path) -> str:

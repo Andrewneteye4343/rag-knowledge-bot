@@ -59,6 +59,10 @@ def cmd_chat(args) -> None:
             break
         answer, chunks = rag.ask(question)
         print(f"\n🤖 {answer}\n")
+        print("📎 檢索來源：")
+        for c in chunks:
+            print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}）")
+        print()
 
 
 def main() -> None:

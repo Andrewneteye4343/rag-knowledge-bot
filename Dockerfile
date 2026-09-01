@@ -7,7 +7,15 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# 先裝依賴（善用 Docker 層快取）
+# 依賴（先裝系統工具再裝 Python 套件）
+# tesseract-ocr：掃描型 PDF 的 OCR 辨識；poppler-utils：pdf2image 轉圖用
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tesseract-ocr \
+        tesseract-ocr-chi-tra \
+        poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# 複製依賴清單並安裝（善用 Docker 層快取）
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

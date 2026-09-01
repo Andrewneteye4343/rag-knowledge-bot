@@ -7,6 +7,7 @@
 ## ✨ 功能
 
 - 支援 `.txt` / `.md` / `.pdf` / `.docx` 文件自動載入
+- **掃描型 PDF 自動 OCR**（偵測到無文字層時，自動用 Tesseract 辨識繁中＋英文）
 - 中文感知的遞迴式切塊（段落 → 句子 → 硬切，含重疊）
 - 本地 embedding 向量化（`BAAI/bge-small-zh-v1.5`，不需 GPU、不需上傳文件）
 - ChromaDB 向量檢索（餘弦相似度）
@@ -105,6 +106,7 @@ LLM_BACKEND=mock python tests/test_pipeline.py
 ## ⚠️ 常見問題
 
 - **回答不準確？** 更新文件後務必重新 `ingest`；可調大 `TOP_K`、換更好的 embedding 模型。
+- **掃描型 PDF 讀不到？** 已內建 OCR 自動後備：偵測到無文字層的 PDF 會自動用 Tesseract 辨識（`OCR_LANG=chi_tra+eng` 可調）。OCR 較慢，多頁文件請耐心等待。
 - **答案說「無法回答」？** 表示檢索到的區塊沒有相關內容，請確認文件已 ingest、問題在知識庫範圍內。
 - **免費額度**：Gemini API 有每日免費額度，個人練習綽綽有餘。
 
