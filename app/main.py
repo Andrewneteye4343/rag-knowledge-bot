@@ -46,15 +46,20 @@ def _print_confidence(confidence: dict) -> None:
     )
 
 
+def _print_sources(chunks: list[dict]) -> None:
+    print("\n📎 檢索來源：")
+    for c in chunks:
+        extra = f" / rerank {c['rerank_score']}" if "rerank_score" in c else ""
+        print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}{extra}）")
+
+
 def cmd_ask(args) -> None:
     answer, chunks, confidence = rag.ask(args.question)
     print("=" * 50)
     print(answer)
     print("=" * 50)
     _print_confidence(confidence)
-    print("\n📎 檢索來源：")
-    for c in chunks:
-        print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}）")
+    _print_sources(chunks)
 
 
 def cmd_chat(args) -> None:
@@ -72,9 +77,7 @@ def cmd_chat(args) -> None:
         answer, chunks, confidence = rag.ask(question)
         print(f"\n🤖 {answer}\n")
         _print_confidence(confidence)
-        print("\n📎 檢索來源：")
-        for c in chunks:
-            print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}）")
+        _print_sources(chunks)
         print()
 
 

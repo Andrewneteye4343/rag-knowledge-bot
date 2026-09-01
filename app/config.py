@@ -31,5 +31,11 @@ CHUNK_SIZE = int(_get("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(_get("CHUNK_OVERLAP", "50"))
 TOP_K = int(_get("TOP_K", "4"))
 
+# --- Reranker（二階段檢索）---
+# 第一階段「海選」的候選數量；設為 <= TOP_K 即停用 rerank
+RERANK_TOP_K = int(_get("RERANK_TOP_K", "20"))
+# 多語言 reranker（中英皆可，第一次使用下載約 1.1GB）
+RERANK_MODEL = _get("RERANK_MODEL", "jinaai/jina-reranker-v2-base-multilingual")
+
 # --- OCR（掃描型 PDF 用）---
 OCR_LANG = _get("OCR_LANG", "chi_tra+eng")

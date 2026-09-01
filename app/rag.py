@@ -1,4 +1,4 @@
-"""RAG 主流程：檢索（Retrieval）+ 生成（Generation）+ 信心評估。"""
+"""RAG 主流程：檢索（Retrieval）+ Rerank 精排 + 生成（Generation）+ 信心評估。"""
 import config
 import llm
 from embed_store import VectorStore
@@ -7,8 +7,10 @@ from embed_store import VectorStore
 def _retrieval_score(chunks: list[dict]) -> float:
     """檢索信心分數（0-100）。
 
-    依據：top-1 餘弦距離越近越高分；top-1 與 top-2 的距離差距越大
-    （第一名明顯領先）代表問題越「明確命中」，額外加分。
+    基礎：top-1 餘弦距離（越近越高分）＋ top-1 與 top-2 的距離間距加分。
+    有 rerank 時：rerank 負責排序品質，其「第一名領先幅度」（margin）額外加分。
+    注意：不直接用 rerank 原始分數換算——cross-encoder 的分數刻度因模型而異
+    （可能全為負值），直接用會嚴重誤判，這是實務上常見的校準陷阱。
     """
     if not chunks:
         return 0.0
@@ -18,6 +20,10 @@ def _retrieval_score(chunks: list[dict]) -> float:
     if len(chunks) >= 2:
         gap = chunks[1]["distance"] - top1
         base = min(100.0, base + min(15.0, gap * 150))
+    if "rerank_score" in chunks[0] and len(chunks) >= 2:
+        # 第一名領先幅度越大越有信心（加分上限 15）
+        margin = chunks[0]["rerank_score"] - chunks[1]["rerank_score"]
+        base = min(100.0, base + max(0.0, min(15.0, margin * 20)))
     return round(base, 1)
 
 
@@ -38,7 +44,15 @@ def ask(question: str) -> tuple[str, list[dict], dict]:
     if store.count() == 0:
         raise SystemExit("知識庫是空的！請先執行: python main.py ingest")
 
-    chunks = store.query(question, config.TOP_K)
+    # 二階段檢索：RERANK_TOP_K 大於 TOP_K 時，先海選再精排
+    # （候選數不超過索引總數，避免 ChromaDB 印警告）
+    candidate_k = max(config.RERANK_TOP_K, config.TOP_K)
+    n = min(candidate_k, store.count())
+    chunks = store.query(question, n)
+    rerank_used = config.RERANK_TOP_K > config.TOP_K and len(chunks) > config.TOP_K
+    if rerank_used:
+        chunks = store.rerank(question, chunks, config.TOP_K)
+
     result = llm.generate(question, chunks)
 
     retrieval_score = _retrieval_score(chunks)
@@ -49,7 +63,11 @@ def ask(question: str) -> tuple[str, list[dict], dict]:
         composition = "檢索評估（模型未提供自評）"
     else:
         final = round(0.4 * retrieval_score + 0.6 * llm_score)
-        composition = "檢索 40% + 模型自評 60%"
+        composition = (
+            "檢索 40%（Reranker 精排） + 模型自評 60%"
+            if rerank_used
+            else "檢索 40% + 模型自評 60%"
+        )
 
     confidence = {
         "score": final,

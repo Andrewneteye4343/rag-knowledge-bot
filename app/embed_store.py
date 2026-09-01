@@ -49,6 +49,7 @@ class VectorStore:
         self.collection = self.client.get_or_create_collection(
             name=collection, metadata={"hnsw:space": "cosine"}
         )
+        self.reranker = None  # 延遲載入，避免沒用到時拖慢速度
 
     def add_chunks(self, chunks: list[dict]) -> int:
         """將區塊向量化後寫入（id 相同會覆蓋，可重複執行）。"""
@@ -88,6 +89,29 @@ class VectorStore:
                 "distance": round(dist, 4),
             })
         return items
+
+    def _load_reranker(self) -> None:
+        """載入 cross-encoder reranker（第一次使用會下載模型）。"""
+        from fastembed.rerank.cross_encoder import TextCrossEncoder
+
+        print(f"⏳ 載入 reranker 模型（{config.RERANK_MODEL}，首次使用需下載約 1.1GB）...")
+        self.reranker = TextCrossEncoder(
+            model_name=config.RERANK_MODEL,
+            cache_dir=str(config.CACHE_DIR),
+        )
+
+    def rerank(self, question: str, candidates: list[dict], top_k: int) -> list[dict]:
+        """二階段精排：cross-encoder 同時看「問題＋區塊」重新打分排序。"""
+        if not candidates:
+            return []
+        if self.reranker is None:
+            self._load_reranker()
+        texts = [c["text"] for c in candidates]
+        scores = list(self.reranker.rerank(question, texts))
+        for c, s in zip(candidates, scores):
+            c["rerank_score"] = round(float(s), 4)
+        ranked = sorted(candidates, key=lambda c: c["rerank_score"], reverse=True)
+        return ranked[:top_k]
 
     def count(self) -> int:
         return self.collection.count()
