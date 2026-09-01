@@ -137,7 +137,10 @@ def _format_context(docs: list[Document]) -> str:
     parts = []
     for i, d in enumerate(docs, 1):
         src = d.metadata.get("source", "?")
-        parts.append(f"[區塊{i}] 檔案: {src}\n{d.page_content}")
+        idx = d.metadata.get("chunk_index")
+        # 與主專案一致的引用格式：檔案名稱#區塊編號
+        label = f"{src}#{idx}" if idx is not None else src
+        parts.append(f"[區塊{i}] 檔案: {label}\n{d.page_content}")
     return "\n\n".join(parts)
 
 
@@ -154,6 +157,13 @@ def cmd_ingest(args) -> None:
         separators=["\n\n", "。", "！", "？", "；", "\n", " "],
     )
     chunks = splitter.split_documents(docs)
+    # 為每個切塊加上區塊編號（每個來源檔獨立編號，與主專案一致）
+    counters: dict[str, int] = {}
+    for chunk in chunks:
+        src = chunk.metadata.get("source", "?")
+        idx = counters.get(src, 0)
+        chunk.metadata["chunk_index"] = idx
+        counters[src] = idx + 1
     print(f"✂ 切分完成：{len(docs)} 份文件 → {len(chunks)} 個區塊")
 
     embeddings = _build_embeddings()
