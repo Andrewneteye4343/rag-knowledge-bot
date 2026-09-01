@@ -1,0 +1,14 @@
+# LangChain 版 compose（路徑以本檔所在目錄為基準，故用 ../ 指向專案根）
+services:
+  rag-langchain:
+    build:
+      context: ..
+      dockerfile: langchain_version/Dockerfile
+    image: rag-langchain:latest
+    container_name: rag-langchain
+    env_file: ../.env
+    volumes:
+      - ../data:/app/data
+      - ../cache:/app/cache
+    stdin_open: true
+    tty: true
