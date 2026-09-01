@@ -39,13 +39,17 @@ def test_ingest_and_ask():
     store = VectorStore(config.EMBEDDING_MODEL, config.CHROMA_DIR, config.CHROMA_COLLECTION)
     assert store.count() == n
 
-    answer, chunks = rag.ask("員工的特休假有幾天？")
+    answer, chunks, confidence = rag.ask("員工的特休假有幾天？")
     assert answer, "應有回答"
     assert len(chunks) > 0, "應檢索到區塊"
     # 檢索結果應包含人事制度文件
     sources = {c["source"] for c in chunks}
     assert any("人事制度" in s for s in sources), f"檢索結果應含人事制度，實際: {sources}"
+    # 信心分數應在 0-100 之間且有標籤
+    assert 0 <= confidence["score"] <= 100, f"信心分數越界: {confidence['score']}"
+    assert confidence["label"] in {"高", "中", "低"}
     print("✓ 索引與檢索正常")
+    print("  信心分數:", confidence["score"], "/ 100（", confidence["label"], "）")
     print("  Mock 回答:", answer.splitlines()[0])
     print("  檢索來源:", sources)
 

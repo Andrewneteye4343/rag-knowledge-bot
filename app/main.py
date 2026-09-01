@@ -35,11 +35,23 @@ def cmd_ingest(args) -> None:
     print("現在可以執行: python main.py ask \"你的問題\"")
 
 
+def _print_confidence(confidence: dict) -> None:
+    print(f"\n🎯 信心分數：{confidence['score']}/100（{confidence['label']}）")
+    if confidence["reason"]:
+        print(f"   模型自評理由：{confidence['reason']}")
+    print(
+        f"   組成：{confidence['composition']}"
+        + (f"（檢索 {confidence['retrieval']} 分" if confidence["llm"] is not None else "（檢索")
+        + (f"、模型自評 {confidence['llm']} 分）" if confidence["llm"] is not None else " 分）")
+    )
+
+
 def cmd_ask(args) -> None:
-    answer, chunks = rag.ask(args.question)
+    answer, chunks, confidence = rag.ask(args.question)
     print("=" * 50)
     print(answer)
     print("=" * 50)
+    _print_confidence(confidence)
     print("\n📎 檢索來源：")
     for c in chunks:
         print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}）")
@@ -57,9 +69,10 @@ def cmd_chat(args) -> None:
             continue
         if question.lower() in {"exit", "quit", "離開"}:
             break
-        answer, chunks = rag.ask(question)
+        answer, chunks, confidence = rag.ask(question)
         print(f"\n🤖 {answer}\n")
-        print("📎 檢索來源：")
+        _print_confidence(confidence)
+        print("\n📎 檢索來源：")
         for c in chunks:
             print(f"  • {c['source']}#{c['chunk_index']}（距離 {c['distance']}）")
         print()
